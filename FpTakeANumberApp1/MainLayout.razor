@@ -1,0 +1,61 @@
+﻿@inherits LayoutComponentBase
+@inject AppState _appState
+@inject IConfiguration _cfg
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+
+@if (_cfg.GetValue<bool>("SecurityEnabled") == false) _appState.AccessGranted = true;
+ 
+
+@{
+    var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
+                                .TrimEnd('/');
+}
+
+@if (_appState.AccessGranted
+    || path == ""
+    || path == "dashboard")
+{
+    <main> @Body </main>
+}
+else
+{
+    <div class="row @codeEntryVisible vstack">
+        <div class="col">
+            <input @ref="accessCodeRefForFocus"
+                   placeholder="Enter access code and press Enter or click OK"
+                   class="form-control form-text p-3 w-100" type="text"
+            @onkeydown="CheckAccess" @bind-value="accessCode" />
+        </div>
+        <div class="col">
+            <button class="btn btn-primary p-3 w-100" @onclick="CheckAccess">OK</button>
+        </div>
+    </div>
+}
+
+@code {
+    string accessCode = "";
+    private ElementReference accessCodeRefForFocus;
+    string codeEntryVisible;
+
+    protected override void OnInitialized()
+    {
+
+    }
+
+    private CancellationTokenSource src = new();
+
+    async Task CheckAccess()
+    {
+        src.Cancel();
+        src = new();
+        await Task.Delay(250, src.Token).ContinueWith(
+            x =>
+            {
+                _appState.AccessGranted = accessCode == _cfg.GetValue<string>("SecurityCode") ? true : false;
+            }
+            , src.Token);        
+
+    }
+}

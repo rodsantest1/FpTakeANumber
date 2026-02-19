@@ -1,0 +1,271 @@
+﻿@page "/settings"
+@inject AppState _appState
+@inject TakeANumberSystem _x
+@inject IJSRuntime JSRuntime
+
+<h3 class="mb-4">⚙️ Settings</h3>
+
+<div class="mb-3">
+    <a href="/admin" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+</div>
+
+@if (showToast)
+{
+    <div class="toast-message">@toastMessage</div>
+}
+
+<div class="settings-panel">
+
+    <!-- Worker Count -->
+    <div class="panel-item">
+        <i class="fas fa-users text-info"></i>
+        <div class="panel-content">
+            <label class="form-label">Worker Count</label>
+            <input type="number" class="form-control w-25"
+                   @bind="tbWorkerCount" @bind:event="oninput"
+                   @onchange="HandleWorkerCountInput" />
+        </div>
+    </div>
+
+    <!-- Chat Name -->
+    <div class="panel-item">
+        <i class="fas fa-comments text-primary"></i>
+        <div class="panel-content">
+            <label class="form-label">Chat Name</label>
+            <input type="text" class="form-control"
+                   @bind="tbChatName" @bind:event="oninput"
+                   @onchange="HandleChatNameInput" />
+        </div>
+    </div>
+
+    <!-- Ticket Flow -->
+    <div class="panel-item">
+        <i class="fas fa-ticket-alt text-success"></i>
+        <div class="panel-content">
+            <label class="form-label">Next Number</label>
+            <input type="number" class="form-control mb-2"
+                   @bind="tbResetTo" @bind:event="oninput"
+                   @onchange="HandleResetToInput" />
+            <label class="form-label">Max Card Number</label>
+            <input type="number" class="form-control mb-2"
+                   @bind="tbMaxCard" @bind:event="oninput"
+                   @onchange="HandleMaxCardInput" />
+            <label class="form-label">Ticket Count</label>
+            <input type="number" class="form-control"
+                   @bind="tbTicketCount" @bind:event="oninput"
+                   @onchange="HandleTicketCountInput" />
+        </div>
+    </div>
+
+    <!-- QR Toggle -->
+    <div class="panel-item">
+        <i class="fas fa-qrcode text-warning"></i>
+        <div class="panel-content d-flex justify-content-between align-items-center">
+            <label class="form-label mb-0">Show QR Code</label>
+            <div class="form-check form-switch">
+                <input class="form-check-input"
+                       type="checkbox"
+                       role="switch"
+                       id="qrToggle"
+                       checked="@_x.ShowQR"
+                       @onchange="HandleQrToggle"
+                       disabled="@(!string.IsNullOrWhiteSpace(_x.NowServing))" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Settings -->
+    <div class="panel-item">
+        <i class="fas fa-volume-up text-primary"></i>
+        <div class="panel-content d-flex justify-content-between align-items-center">
+            <label class="form-label mb-0">Use Natural Voice</label>
+            <div class="form-check form-switch">
+                <input class="form-check-input"
+                       type="checkbox"
+                       role="switch"
+                       id="naturalVoiceToggle"
+                       @bind="_appState.UseNaturalVoice"
+                       @bind:event="onchange" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Restart -->
+    <div class="panel-item">
+        <i class="fas fa-sync-alt text-secondary"></i>
+        <div class="panel-content">
+            <button class="btn btn-danger btn-sm" @onclick="RestartSystem">Restart System</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .settings-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .panel-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+        background: #fdfdfd;
+    }
+
+        .panel-item i {
+            font-size: 1.5rem;
+            margin-top: 0.25rem;
+        }
+
+    .panel-content {
+        flex: 1;
+    }
+
+    .toast-message {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        background: #6f1f78;
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.2);
+        z-index: 9999;
+        animation: fadeInOut 3s ease-in-out;
+    }
+    @@keyframes fadeInOut {
+        0%
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    }
+</style>
+
+@code {
+    string tbChatName = "";
+    string tbResetTo = "";
+    string tbMaxCard = "";
+    string tbWorkerCount = "";
+    string tbTicketCount = "";
+
+    bool showToast = false;
+    string toastMessage = "";
+
+    // 🔧 Consolidated helper
+    async Task SetChatName(string name)
+    {
+        _appState.ChatName = name;
+        tbChatName = name;
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatName", name);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        tbResetTo = _x.ResetToNumber.ToString();
+        tbMaxCard = _x.MaxCardNumber.ToString();
+        tbWorkerCount = _x.WorkerCount.ToString();
+        tbTicketCount = _x.TicketCount.ToString();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var savedName = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "chatName");
+            if (!string.IsNullOrWhiteSpace(savedName))
+            {
+                await SetChatName(savedName);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    async Task ShowToast(string message)
+    {
+        toastMessage = message;
+        showToast = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        showToast = false;
+        StateHasChanged();
+    }
+
+    async Task HandleChatNameInput(ChangeEventArgs e)
+    {
+        await SetChatName(tbChatName);
+        await ShowToast("Chat name saved");
+    }
+
+    void HandleResetToInput(ChangeEventArgs e) { if (int.TryParse(tbResetTo, out var v)) _x.ResetNowServing(v); }
+    void HandleMaxCardInput(ChangeEventArgs e) { if (int.TryParse(tbMaxCard, out var v)) _x.SetMaxCard(v); }
+    void HandleTicketCountInput(ChangeEventArgs e) { if (int.TryParse(tbTicketCount, out var v)) _x.SetTicketCount(v); }
+
+    async Task HandleQrToggle(ChangeEventArgs e)
+    {
+        _x.ShowQRCode();
+        await ShowToast(_x.ShowQR ? "QR code shown" : "QR code hidden");
+    }
+
+    async Task RestartSystem()
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+            "Are you sure you want to restart the system? This will clear all tables and reset counters.");
+
+        if (confirmed)
+        {
+            _x.Restart();
+
+            // Reload persisted chat name
+            var savedName = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "chatName");
+            if (!string.IsNullOrWhiteSpace(savedName))
+            {
+                await SetChatName(savedName);
+            }
+
+            tbResetTo = _x.ResetToNumber.ToString();
+            tbMaxCard = _x.MaxCardNumber.ToString();
+            tbWorkerCount = _x.WorkerCount.ToString();
+            tbTicketCount = _x.TicketCount.ToString();
+
+            StateHasChanged();
+            await ShowToast("System restarted");
+        }
+        else
+        {
+            await ShowToast("Restart cancelled");
+        }
+    }
+
+    async Task HandleWorkerCountInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(tbWorkerCount, out var v) && v > 0)
+        {
+            _x.SetWorkerCount(v);
+            tbWorkerCount = v.ToString();
+            await ShowToast($"Worker count updated to {v}");
+        }
+    }
+}

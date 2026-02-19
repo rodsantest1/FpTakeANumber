@@ -1,0 +1,77 @@
+﻿@page "/counter"
+@inject TakeANumberSystem _x;
+
+
+<div class="container">
+    <div class="row">
+        <div class="col-2 p-1"><a href="/" class="rsbutton btn btn-secondary pt-2 pb-2 w-100"><i class='fas fa-home'></i></a></div>
+        <div class="col-4 text-white text-center" style="background-color: #6f1f78; height: 5rem;"><h6>Serving</h6><span class="display-5">@_x.NowServing</span></div>
+    </div>
+    <div class="row text-center"><h1>Tickets given count</h1></div>
+    <div class="row mt-2 text-center" style="font-size: 10rem;">
+        <div class="col">@ticketCount</div>
+    </div>
+    <div class="row" style="margin-top: 1rem">
+        <div class="col-4">
+            <button @onclick="IncrementCount" style="font-size: 2rem;" class="btn-primary w-75 m-3">+</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-7">
+            <input @ref="counterPageRefForFocus" type="number" min="0" style="font-size: 4rem;" class="w-75 form-control form-text" @bind-value="ticketCount" />
+        </div>
+        <div class="col-5">
+            <button @onclick="ManualCount" style="font-size: 1.75rem;" class="btn-primary w-75 m-3">Set</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-4">
+            <button @onclick="DecrementCount" style="font-size: 2rem;" class="btn-primary w-75 m-3">-</button>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private ElementReference counterPageRefForFocus;
+
+    int ticketCount;
+
+    protected override void OnInitialized()
+    {
+        ticketCount = _x.TicketCount;
+
+        _x.HeySomethingChanged += async (s, e) =>
+            {
+
+                await InvokeAsync(StateHasChanged);
+            };
+    }
+
+    void IncrementCount()
+    {
+        _x.SetTicketCount(++ticketCount);
+    }
+
+    void DecrementCount()
+    {
+        if (ticketCount > 0)
+        {
+            _x.SetTicketCount(--ticketCount);
+        }
+    }
+
+    void ManualCount()
+    {
+        _x.SetTicketCount(ticketCount);
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //give access code text the focus
+            await counterPageRefForFocus.FocusAsync();
+        }
+    }
+}

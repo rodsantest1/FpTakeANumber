@@ -1,0 +1,491 @@
+﻿@page "/admin"
+@using System.Text.RegularExpressions
+@inject TakeANumberSystem _x
+@inject AppState _appState
+@inject IJSRuntime JSRuntime
+@inject IConfiguration _cfg
+<PageTitle>Admin</PageTitle>
+
+<style>
+    .rstbl, .rsread {
+    }
+
+    .rstbl, .rsread, .rsbutton, .btn {
+        padding: 0.6rem 0.75rem;
+        font-size: 1rem;
+    }
+
+    .admtxn.display-5 {
+        font-size: 2.5rem;
+    }
+
+    .alert.position-relative.w-100 {
+        word-break: break-word;
+    }
+
+    .card.table-card {
+        min-height: 12rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .bg-purple {
+        background-color: #6f1f78;
+    }
+
+    .card.shadow-sm:hover {
+        box-shadow: 0 0 0.5rem #6f1f78;
+    }
+
+    .chat-feed {
+        min-height: 2rem; /* keeps a little space even when empty */
+    }
+
+    /* iPhone portrait tweaks */
+    @@media only screen and (max-width: 430px) and (orientation: portrait) {
+        .container {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .row.text-center.mt-2.mb-4 {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            height: auto !important;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+            .row.text-center.mt-2.mb-4 .col {
+                padding: 0.2rem 0.25rem;
+            }
+
+        .row.table-button-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+            .row.table-button-row > .col {
+                flex: 0 0 45%;
+                max-width: 45%;
+            }
+
+        .rstbl.btn, .rsread.btn {
+            width: 100%;
+            padding-top: 0.9rem;
+            padding-bottom: 0.9rem;
+            font-size: 1.05rem;
+        }
+
+        .admtxn.display-5 {
+            font-size: 2.2rem;
+        }
+
+        .row.mt-3.border .row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .row.mt-3.border .col-2 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        input.form-control {
+            font-size: 1rem;
+            padding: 0.6rem 0.6rem;
+        }
+
+        .row.ms-2.mt-1 ul {
+            max-height: 180px;
+            overflow-y: auto;
+            padding-left: 1rem;
+            margin: 0.25rem 0;
+        }
+
+        .alert.alert-danger {
+            font-size: 0.95rem;
+            padding: 0.5rem 0.6rem;
+        }
+
+        .fa-volume-up, .fa-pause, .fa-undo, .fa-home, .oi {
+            font-size: 1.05rem;
+        }
+    }
+</style>
+
+<div class="container" style="padding-top:@(alertVisible == "" ? "3.5rem" : "0")">
+
+    <!-- Alert banner -->
+    <div class="alert alert-danger alert-dismissible @alertVisible position-fixed top-0 start-0 end-0" style="z-index:1050;">
+        <button type="button" @onclick="CloseAlert" class="btn-close" data-bs-dismiss="alert"></button>
+        <strong> You've got messages!</strong>
+        @if (!string.IsNullOrEmpty(toastText))
+        {
+            <div><span class="text-muted">[@toastSender]</span> @toastText</div>
+        }
+    </div>
+
+    <!-- Serving / Next / Served / Tickets cards -->
+    <div class="row text-center mt-2 mb-4">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-body p-2">
+                    <div class="d-flex flex-column align-items-center">
+                        <div class="bg-purple text-white px-3 py-1 rounded mb-2">
+                            <h6 class="mb-0">Serving</h6>
+                        </div>
+                        <div class="display-5 fw-bold">
+                            @(!string.IsNullOrWhiteSpace(_x.NowServing) ? _x.NowServing : "-")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-body p-2">
+                    <h6 class="text-muted">Next</h6>
+                    <div class="display-5 fw-bold">@_x.NextNumber</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-body p-2">
+                    <h6 class="text-muted">Served</h6>
+                    <div class="display-5 fw-bold">@_x.ServedCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm" title="Click to increment" style="cursor:pointer" @onclick="IncrementTicketCount">
+                <div class="card-body p-2">
+                    <h6 class="text-muted">Tickets</h6>
+                    <div class="display-5 fw-bold">@_x.TicketCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Worker table buttons -->
+    <div class="row table-button-row">
+        @for (int i = 1; i <= _x.WorkerCount; i++)
+        {
+            var tableId = i;
+            <div class="col text-center mb-3">
+                <div class="card table-card shadow-sm border-1 mb-2">
+                    <div class="card-body p-2">
+                        <div class="row">
+                            <div class="col">
+                                <button class="rstbl btn btn-primary pt-3 pb-3 w-100"
+                                        style="visibility:@isPaused;"
+                                        @onclick="() => _x.SetTable(tableId, _appState.UseNaturalVoice)">
+                                    Table @tableId
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row pt-1 pb-1">
+                            <div class="admtxn display-5">@_x.GetTableDisplay(tableId)</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                @if (ShowRead(tableId))
+                                {
+                                    <button class="rsread btn btn-secondary pt-2 pb-2 w-100"
+                                            @onclick="() => _x.ReadAloud(tableId, _appState.UseNaturalVoice)">
+                                        <i class='fas fa-volume-up'></i> Recall
+                                    </button>
+                                }
+                                else
+                                {
+                                    <div style="height: 2.5rem;"></div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Control row -->
+    <div class="row mt-3 border border-3 p-2">
+        <div class="col-2 p-1"><a href="/settings" class="rsbutton btn btn-secondary pt-2 pb-2 w-100"><span class="oi oi-cog" aria-hidden="true" /> Settings</a></div>
+        <div class="col-2 p-1"><button @onclick="_x.TogglePause" class="btn @pauseBtnColor pt-2 pb-2 w-100"><i class='fas fa-pause'></i> Pause</button></div>
+        <div class="col-2 p-1"><button class="btn btn-secondary @undoEnabled pt-2 pb-2 w-100" @onclick="Undo"><i class='fas fa-undo'></i> Undo</button></div>
+        <div class="col-2 p-1"><button @onclick="_x.ToggleMute" class="btn @muteBtnColor pt-2 pb-2 w-100"><i class='fas fa-@muteBtnText'></i> Mute</button></div>
+        <div class="col-2 p-1"><a href="/" class="rsbutton btn btn-secondary pt-2 pb-2 w-100"><i class='fas fa-home'></i> Home</a></div>
+
+        <!-- Chat input -->
+        <div class="row mt-4">
+            <div class="d-flex align-items-center">
+                <input type="text"
+                       @onkeyup="HandleKeyPress"
+                       placeholder="@ChatPlaceholder"
+                       class="me-2 form-control"
+                       @bind-value="textInput" />
+
+                <button class="btn btn-secondary" @onclick="SendText">Send</button>
+                <span class="ms-2"
+                      style="cursor: pointer;"
+                      @onclick="ToggleTips"
+                      title="Show/Hide Tips">
+                    💡
+                </span>
+            </div>
+
+            @if (showTips)
+            {
+                <div class="alert alert-info small mt-2">
+                    <div>Tip: Type <code>tc# & Send</code> sets ticket count (tap Tickets)</div>
+                    <div>Tip: Type <code>cn.<i>yourname</i> & Send</code> for chat name.</div>
+                </div>
+            }
+        </div>
+
+        <!-- Chat feed -->
+        <div class="d-flex flex-column ms-2 mt-1 chat-feed">
+            @for (int i = 0; i < _x.TextMessages.Count; i++)
+            {
+                var msg = _x.TextMessages[i];
+
+                <div class="d-flex align-items-center">
+                    <span class="text-muted">@msg.Timestamp.ToShortTimeString() [@msg.Sender]:</span>
+                    <span class="ms-1">@msg.Text</span>
+
+                    @if (i == 0 && msg.Sender == _appState.ChatName)
+                    {
+                        <span class="ms-2 text-muted" style="cursor:pointer"
+                              aria-label="Delete message"
+                              @onclick="DeleteLatest">❌</span>
+                    }
+                </div>
+            }
+        </div>
+
+    </div>
+</div>
+
+@code {
+    bool sendPushedHere;
+    string alertVisible = "visually-hidden";
+    string undoEnabled = "disabled";
+    string resetEnabled = ""; // future impl
+    string maxCardEnabled = ""; // future impl
+    string tbResetTo = "";
+    string tbMaxCard = "";
+    string isPaused = "";
+    string pauseBtnColor = "btn btn-secondary";
+    string muteBtnColor = "btn btn-secondary";
+    string muteBtnText = "volume-mute";
+    string toastSender = "";
+    string toastText = "";
+
+    private readonly object _msgLock = new object();
+
+    string ChatPlaceholder =>
+        !string.IsNullOrWhiteSpace(_appState.ChatName)
+            ? $"Chat message as {_appState.ChatName}"
+            : "Chat message";
+
+    void CloseAlert()
+    {
+        alertVisible = "visually-hidden";
+    }
+
+    async Task Undo()
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to undo?"))
+            return;
+
+        _x.Undo();
+    }
+
+    void SetPageState()
+    {
+        isPaused = _x.IsPaused ? "hidden" : "";
+        pauseBtnColor = _x.IsPaused ? "btn btn-warning" : "btn btn-secondary";
+        muteBtnColor = _x.IsMuted ? "btn btn-warning" : "btn btn-secondary";
+        muteBtnText = _x.IsMuted ? "volume-mute" : "volume-off";
+        undoEnabled = !string.IsNullOrEmpty(_x.NowServing) ? "" : "disabled";
+
+        if (_x.ShowQR && !string.IsNullOrEmpty(_x.NowServing))
+        {
+            _x.ShowQRCode();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SetPageState();
+
+        _x.HeySomethingChanged += async (s, e) =>
+        {
+            SetPageState();
+            await InvokeAsync(StateHasChanged);
+        };
+
+        _x.TextMessages.ListChanged += async (s, e) =>
+        {
+            if (e.ListChangedType == System.ComponentModel.ListChangedType.ItemAdded)
+            {
+                var latest = _x.TextMessages.FirstOrDefault();
+                if (latest != null && latest.Sender != _appState.ChatName)
+                {
+                    // Only show toast for messages not from me
+                    toastSender = latest.Sender;
+                    toastText = latest.Text;
+                    alertVisible = "";
+                }
+
+                sendPushedHere = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        };
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var savedName = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "chatName");
+            if (!string.IsNullOrWhiteSpace(savedName))
+            {
+                _appState.ChatName = savedName;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    string textFrom = "";
+    string textInput = "";
+    async Task SendText()
+    {
+        string toSend = textInput;
+        var textInputLower = textInput.ToLower();
+
+        // Explicit ticket count command (hijacks text)
+        if (textInputLower.StartsWith("tc"))
+        {
+            var match = Regex.Match(textInputLower, @"tc(\d+)");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out int ticketCnt))
+            {
+                _x.SetTicketCount(ticketCnt);
+                textInput = "";
+                return;
+            }
+        }
+
+        // Explicit chat name command (hijacks text)
+        if (Regex.IsMatch(textInput, @"^cn\.", RegexOptions.IgnoreCase))
+        {
+            var chatName = Regex.Replace(textInput, @"^cn\.", "", RegexOptions.IgnoreCase).Trim();
+            await SetChatName(chatName);
+            textInput = "";
+            return;
+        }
+
+        // Optional "from" prefix
+        if (!string.IsNullOrWhiteSpace(textFrom))
+        {
+            toSend = $"{textFrom}: {textInput}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(toSend))
+        {
+            sendPushedHere = true;
+
+            if (string.IsNullOrWhiteSpace(_appState.ChatName))
+            {
+                _appState.ChatName = GenerateAnonymousName();
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatName", _appState.ChatName);
+            }
+
+            var msg = new ChatMessage
+            {
+                Sender = _appState.ChatName,
+                Text = toSend,
+                Timestamp = DateTime.Now,
+            };
+
+            lock (_msgLock)
+            {
+                _x.TextMessages.Insert(0, msg);
+            }
+
+            // 👇 Side-effect only: detect "X numbers" or "X tickets"
+            var numberMatch = Regex.Match(textInputLower, @"(\d+)\s+(numbers|tickets)", RegexOptions.IgnoreCase);
+            if (numberMatch.Success && int.TryParse(numberMatch.Groups[1].Value, out int count))
+            {
+                _x.SetTicketCount(count);
+            }
+
+            textInput = "";
+        }
+    }
+
+
+    async Task SetChatName(string name)
+    {
+        _appState.ChatName = name;
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatName", name);
+    }
+
+    bool ShowRead(int tableId)
+    {
+        var disp = _x.GetTableDisplay(tableId);
+        return !string.IsNullOrEmpty(disp) && !_x.IsMuted;
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(textInput))
+        {
+            await SendText();
+        }
+    }
+
+    void IncrementTicketCount()
+    {
+        _x.SetTicketCount(_x.TicketCount + 1);
+    }
+
+    bool showTips = false; // default closed
+
+    void ToggleTips()
+    {
+        showTips = !showTips;
+    }
+
+    void DeleteLatest()
+    {
+        lock (_msgLock)
+        {
+            if (_x.TextMessages.Count > 0)
+            {
+                var msg = _x.TextMessages[0];
+                if (msg.Sender == _appState.ChatName) // only originator can delete
+                {
+                    _x.TextMessages.RemoveAt(0);
+                    _x.SomethingInterestingIsChanging();
+                }
+            }
+        }
+    }
+
+    private static readonly Random _rand = new Random();
+    string GenerateAnonymousName()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        var suffix = new string(Enumerable.Repeat(chars, 5)
+            .Select(s => chars[_rand.Next(chars.Length)]).ToArray());
+        return $"Anonymous-{suffix}";
+    }
+}

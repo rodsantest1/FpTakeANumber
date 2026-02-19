@@ -1,0 +1,24 @@
+﻿
+
+/* landscape orientation */
+@media only screen and (max-width : 845px) and (orientation : landscape) {
+    *, html, body {
+        font-size: 1em;
+    }
+}
+
+
+.txl {
+    font-size: 2.75rem;
+}
+.txn{
+    font-size:6rem;
+}
+
+.nsl{
+    font-size: 3rem;
+}
+
+.nsn{
+    font-size: 12rem;
+}

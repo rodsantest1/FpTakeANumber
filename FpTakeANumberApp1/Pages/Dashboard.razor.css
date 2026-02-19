@@ -1,0 +1,73 @@
+﻿.rswelcome {
+    font-size: 4rem;
+    background-color: #6f1f78;
+    color: white;
+}
+
+.nsl {
+    font-size: 4rem;
+}
+
+.nsn {
+    font-size: 14rem;
+    line-height: 12rem;
+}
+
+.txl {
+    font-size: 1.5rem;
+    background-color: #6f1f78;
+    color: white;
+}
+
+.txn {
+    font-size: 3rem;
+}
+
+@media (min-width: 875px){
+    .rswelcome {
+        font-size: 13rem;
+    }
+
+    .nsn{
+        line-height: 30rem;
+        font-size: 38rem
+    }
+
+    .txl {
+        background-color: #6f1f78;
+        color: white;
+        font-size: 2rem;
+    }
+
+    .txn {
+        font-size: 6rem;
+        line-height: 7rem;
+    }
+}
+
+@media (min-width: 1111px) {
+    .rswelcome {
+        font-size: 23rem;
+    }
+
+    .nsl {
+        font-size: 7rem;
+    }
+
+    .nsn {
+        line-height: 40rem;
+        font-size: 55rem
+    }
+
+    .txl {
+        background-color: #6f1f78;
+        color: white;
+        font-size: 2.75rem;
+    }
+
+    .txn {
+        font-size: 14rem;
+        line-height: 9.5rem;
+        margin-bottom: 0.25em;
+    }
+}

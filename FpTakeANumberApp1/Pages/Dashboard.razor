@@ -1,0 +1,287 @@
+﻿@page "/dashboard"
+@inject TakeANumberSystem _x;
+@inject IConfiguration _cfg
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard</PageTitle>
+
+<style>
+    .dashboard-container {
+        padding: 1rem;
+        max-width: 1920px;
+        margin: 0 auto;
+    }
+
+    /* Main display */
+    .now-serving-label {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        font-weight: bold;
+    }
+
+    .now-serving-large {
+        font-size: 36rem;
+        line-height: 1;
+        font-weight: bold;
+        letter-spacing: 0.05em;
+    }
+
+    .now-serving-table {
+        font-size: 6rem;
+        margin-top: 1rem;
+        color: #333;
+        font-weight: 500;
+    }
+
+    /* Sidebar list */
+    .active-list {
+        height: 800px;
+        overflow: hidden;
+        position: relative;
+    }
+
+        .active-list .item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0.2rem 0;
+            margin: 0;
+            line-height: 1;
+            gap: 1rem;
+        }
+
+        .active-list .item-label {
+            font-size: 4rem;
+            font-weight: 500;
+            color: #444;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+        }
+
+        .active-list .item-value {
+            font-size: 16rem;
+            font-weight: 800;
+            color: #000;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+        }
+
+    /* Welcome banner */
+    .rswelcome {
+        background-color: #6f1f78;
+        color: white;
+        padding: 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        border-radius: 0.25rem;
+    }
+
+        .rswelcome .text-center {
+            margin: 0;
+            font-size: clamp(22rem, 5vw, 4rem);
+            line-height: 1;
+            text-overflow: clip;
+        }
+
+    /* Scrolling logic */
+    .scroller {
+        display: block;
+    }
+
+        .scroller .scroller-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+    @@keyframes scrollUp {
+        0% {
+            transform: translateY(0);
+        }
+
+        100% {
+            transform: translateY(-50%);
+        }
+    }
+
+    .scroller.scrolling .scroller-content {
+        animation-name: scrollUp;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+    }
+
+    /* Mobile fallback */
+    @@media (max-width: 768px) {
+        .now-serving-large {
+            font-size: 6rem;
+        }
+
+        .now-serving-label {
+            font-size: 2.5rem;
+        }
+
+        .now-serving-table {
+            font-size: 2rem;
+        }
+
+        .active-list {
+            height: 240px;
+        }
+
+            .active-list .item-value {
+                font-size: 2.5rem;
+            }
+
+            .active-list .item-label {
+                font-size: 1.5rem;
+            }
+
+        .rswelcome .text-center {
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+        }
+    }
+
+</style>
+
+<div class="dashboard-container container-fluid">
+    <div class="rswelcome row @welcomeVisible">
+        <div class="text-center">Welcome</div>
+    </div>
+
+    <div class="row mb-2">
+        <div class="col @qrVisible">
+            <img class="rcQRCodeSize" src="qr.png" alt="hello" />
+            <label class="rcQRCodeSize">@appUrl</label>
+        </div>
+    </div>
+
+    <div class="row align-items-start">
+        <div class="col-5 mt-2 text-center">
+            <div class="active-list">
+                @if (activeTables.Count == 0)
+                {
+                    <div class="item"></div>
+                }
+                else if (!scrollNeeded)
+                {
+                    @foreach (var t in activeTables)
+                    {
+                        var parts = t.Split(":");
+                        if (parts.Length == 2)
+                        {
+                            <div class="item">
+                                <span class="item-value">@parts[1]</span>
+                                <span class="item-label">Table @parts[0]</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="item">@t</div>
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="scroller scrolling" style="--anim-duration:@(scrollDuration)s">
+                        <div class="scroller-content" style="animation-duration:@(scrollDuration)s">
+                            @foreach (var t in activeTables)
+                            {
+                                var parts = t.Split(":");
+                                if (parts.Length == 2)
+                                {
+                                    <div class="item">
+                                        <span class="item-value">@parts[1]</span>
+                                        <span class="item-label">Table @parts[0]</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="item">@t</div>
+                                }
+                            }
+                            @foreach (var t in activeTables)
+                            {
+                                var parts = t.Split(":");
+                                if (parts.Length == 2)
+                                {
+                                    <div class="item">
+                                        <span class="item-value">@parts[1]</span>
+                                        <span class="item-label">Table @parts[0]</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="item">@t</div>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-7 text-center">
+            <div class="now-serving-label fw-bold @nowServingLabelVisible">Now Serving</div>
+            <div class="now-serving-large" style="color: @nsColor;">@_x.NowServing</div>
+            @if (!string.IsNullOrWhiteSpace(_x.NowServingTableLabel))
+            {
+                <div class="now-serving-table">@_x.NowServingTableLabel</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    string appUrl = "";
+    string qrVisible = "";
+    string welcomeVisible = "";
+    string nowServingLabelVisible = "";
+    string nsColor = "#6f1f78";
+
+    List<string> activeTables = new();
+    bool scrollNeeded = false;
+    int scrollDuration = 20;
+
+    protected override void OnInitialized()
+    {
+        SetPageState();
+        appUrl = Navigation.BaseUri;
+
+        _x.HeySomethingChanged += async (s, e) =>
+        {
+            SetPageState();
+            await InvokeAsync(StateHasChanged);
+        };
+    }
+
+    void SetPageState()
+    {
+        welcomeVisible = string.IsNullOrWhiteSpace(_x.NowServing) && _x.ServedCount == "0" ? "" : "visually-hidden";
+        qrVisible = _x.ShowQR && string.IsNullOrWhiteSpace(_x.NowServing) ? "" : "visually-hidden";
+
+        activeTables = new();
+        for (int i = 1; i <= _x.WorkerCount; i++)
+        {
+            var disp = _x.GetTableDisplay(i);
+            if (!string.IsNullOrEmpty(disp) && disp != _x.NowServing)
+            {
+                activeTables.Add($"{i}:{disp}");
+            }
+        }
+
+        scrollNeeded = activeTables.Count > 3;
+        if (scrollNeeded)
+        {
+            int secondsPerItem = 4;
+            scrollDuration = Math.Max(12, activeTables.Count * secondsPerItem);
+        }
+
+        nowServingLabelVisible = string.IsNullOrWhiteSpace(_x.NowServing) ? "visually-hidden" : "";
+    }
+}

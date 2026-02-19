@@ -1,0 +1,107 @@
+﻿@page "/dashboard2"
+@inject TakeANumberSystem _x;
+@inject IConfiguration _cfg
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard</PageTitle>
+
+<style>
+
+
+    .tbh {
+        font-size: 7rem;
+    }
+
+    .tbv {
+        margin-left: 8rem;
+        margin-bottom: 8rem;
+        font-size: 32rem;
+        line-height: 21rem;
+    }
+</style>
+
+<div class="container-fluid">
+
+    <table class="table mt-5 table-bordered">
+        <tbody>
+            <tr>
+                <td class="w-50" style="background-color: @dbbg1; color: @dbtx1">
+                    <div class="bg-info text-center tbh position-absolute" style="border-radius:8rem; width: 12rem;"><i class="fa-solid fa-1"></i></div>
+                    <div class="tbv text-center">@_x.Table1</div>
+                </td>
+                <td class="w-50" style="background-color: @dbbg2; color: @dbtx2">
+                    <div class="bg-info text-center tbh position-absolute" style="border-radius:8rem; width: 12rem;"><i class="fa-solid fa-2"></i></div>
+                    <div class="tbv text-center">@_x.Table2</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="w-50" style="background-color: @dbbg3; color: @dbtx3">
+                    <div class="bg-info text-center tbh position-absolute" style="border-radius:8rem; width: 12rem;"><i class="fa-solid fa-3"></i></div>
+                    <div class="tbv text-center">@_x.Table3</div>
+                </td>
+                <td class="w-50" style="background-color: @dbbg4; color: @dbtx4">
+                    <div class="bg-info text-center tbh position-absolute" style="border-radius:8rem; width: 12rem;"><i class="fa-solid fa-4"></i></div>
+                    <div class="tbv text-center">@_x.Table4</div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    string dbtx1 = "";
+    string dbbg1 = "";
+    string dbtx2 = "";
+    string dbbg2 = "";
+    string dbtx3 = "";
+    string dbbg3 = "";
+    string dbtx4 = "";
+    string dbbg4 = "";
+
+    string appUrl = "";
+    string qrVisible = "";
+    string welcomeVisible = "";
+    string tblVisibl1 = "";
+    string tblVisibl2 = "";
+    string tblVisibl3 = "";
+    string tblVisibl4 = "";
+    string nowServingLabelVisible = "";
+    string tx1Color = "";
+    string tx2Color = "";
+    string tx3Color = "";
+    string tx4Color = "";
+    string nsColor = "#6f1f78";
+
+    protected override void OnInitialized()
+    {
+        SetPageState();
+
+        appUrl = Navigation.BaseUri;
+
+        _x.HeySomethingChanged += async (s, e) =>
+        {
+            SetPageState();
+            await InvokeAsync(StateHasChanged);
+        };
+
+        void SetPageState()
+        {
+            welcomeVisible = string.IsNullOrWhiteSpace(_x.NowServing) &&
+            _x.ServedCount == "0" ? "" : "visually-hidden";
+            qrVisible = _x.ShowQR && string.IsNullOrWhiteSpace(_x.NowServing) ? "" : "visually-hidden";
+
+            dbtx1 = _x.NowServing == _x.Table1 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "white": "black";
+            dbbg1 = _x.NowServing == _x.Table1 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "#6f1f78" : "white";
+            dbtx2 = _x.NowServing == _x.Table2 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "white" : "black";
+            dbbg2 = _x.NowServing == _x.Table2 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "#6f1f78" : "white";
+            dbtx3 = _x.NowServing == _x.Table3 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "white" : "black";
+            dbbg3 = _x.NowServing == _x.Table3 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "#6f1f78" : "white";
+            dbtx4 = _x.NowServing == _x.Table4 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "white" : "black";
+            dbbg4 = _x.NowServing == _x.Table4 && !string.IsNullOrWhiteSpace(_x.NowServing) ? "#6f1f78" : "white";
+
+
+            nowServingLabelVisible = string.IsNullOrWhiteSpace(_x.NowServing) ? "visually-hidden" : "";
+
+        }
+    }
+}
